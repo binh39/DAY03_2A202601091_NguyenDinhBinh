@@ -30,6 +30,8 @@ DATA_DIR = ROOT_DIR / "data"
 HISTORY_FILE = DATA_DIR / "chat_history.json"
 MAX_MESSAGES_PER_CONVERSATION = 100
 MAX_USER_MESSAGE_LENGTH = 2_000
+SERVER_INSTANCE_ID = str(uuid.uuid4())
+SERVER_STARTED_AT = datetime.now(timezone.utc).isoformat()
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -177,6 +179,8 @@ class HospitalRequestHandler(SimpleHTTPRequestHandler):
                     "status": "ok",
                     "provider": provider.__class__.__name__,
                     "model": getattr(provider, "model_name", "mock"),
+                    "server_instance_id": SERVER_INSTANCE_ID,
+                    "server_started_at": SERVER_STARTED_AT,
                 }
             )
             return
@@ -184,7 +188,14 @@ class HospitalRequestHandler(SimpleHTTPRequestHandler):
             try:
                 conversation_id = self._conversation_id(parse_qs(parsed.query))
                 messages = history_store.get_messages(conversation_id)
-                self._send_json({"conversation_id": conversation_id, "messages": messages})
+                self._send_json(
+                    {
+                        "conversation_id": conversation_id,
+                        "messages": messages,
+                        "server_instance_id": SERVER_INSTANCE_ID,
+                        "server_started_at": SERVER_STARTED_AT,
+                    }
+                )
             except ValueError as exc:
                 self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
             return
@@ -228,6 +239,8 @@ class HospitalRequestHandler(SimpleHTTPRequestHandler):
                     "messages": messages,
                     "trace": trace,
                     "metrics": metrics,
+                    "server_instance_id": SERVER_INSTANCE_ID,
+                    "server_started_at": SERVER_STARTED_AT,
                 }
             )
         except ValueError as exc:
@@ -247,7 +260,14 @@ class HospitalRequestHandler(SimpleHTTPRequestHandler):
         try:
             conversation_id = self._conversation_id(parse_qs(parsed.query))
             history_store.clear(conversation_id)
-            self._send_json({"conversation_id": conversation_id, "messages": []})
+            self._send_json(
+                {
+                    "conversation_id": conversation_id,
+                    "messages": [],
+                    "server_instance_id": SERVER_INSTANCE_ID,
+                    "server_started_at": SERVER_STARTED_AT,
+                }
+            )
         except ValueError as exc:
             self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
 

@@ -20,6 +20,8 @@ Mở `http://localhost:5173`.
 - Trang `appointments.html` hiển thị và quản lý các lịch khám đã xác nhận.
 - Cả hai chatbot gọi chung ReAct Agent và tool trong `src/tools.py`.
 - Lịch sử hai chatbot được đồng bộ qua API và lưu tại `data/chat_history.json`.
+- Form đặt lịch tự nhận diện và điền thông tin phù hợp từ lịch sử chat mà không ghi đè dữ liệu nhập tay.
+- Tin nhắn mới có thể cập nhật lại các trường đã tự điền; restart backend sẽ reset dữ liệu form của phiên cũ.
 - Link trong phản hồi chatbot có thể bấm và được mở an toàn ở tab mới.
 - Giao diện dùng Be Vietnam Pro và Noto Serif, hỗ trợ đầy đủ tiếng Việt.
 - Thông báo cho các nội dung chưa được kết nối.

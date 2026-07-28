@@ -39,6 +39,21 @@
   font-size: 11px;
 }
 
+.autofill-notice {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 15px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--teal);
+  background: var(--teal-soft);
+  color: #315f62;
+}
+
+.autofill-notice[hidden] { display: none; }
+.autofill-notice > span { color: var(--teal); }
+.autofill-notice p { margin: 0; font-size: 8px; font-weight: 600; }
+
 .booking-steps {
   position: relative;
   display: grid;

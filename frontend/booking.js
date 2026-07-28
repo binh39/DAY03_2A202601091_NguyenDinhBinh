@@ -5,6 +5,11 @@ const appointmentDate = document.querySelector("#split-appointment-date");
 const bookingSteps = document.querySelectorAll(".booking-steps li");
 const menuToggle = document.querySelector("#menu-toggle");
 const primaryNav = document.querySelector("#primary-nav");
+const autofillNotice = document.querySelector("#autofill-notice");
+const autofillMessage = document.querySelector("#autofill-message");
+const FORM_SERVER_KEY = "vinmecFormServerInstanceId";
+let lastChatMessages = [];
+let isApplyingAutofill = false;
 
 menuToggle.addEventListener("click", () => {
   const isOpen = primaryNav.classList.toggle("open");
@@ -15,6 +20,209 @@ menuToggle.addEventListener("click", () => {
 const localDate = new Date();
 localDate.setMinutes(localDate.getMinutes() - localDate.getTimezoneOffset());
 appointmentDate.min = localDate.toISOString().split("T")[0];
+
+function toIsoDate(date) {
+  const copy = new Date(date);
+  copy.setMinutes(copy.getMinutes() - copy.getTimezoneOffset());
+  return copy.toISOString().split("T")[0];
+}
+
+function extractDate(text) {
+  const normalized = text.toLocaleLowerCase("vi");
+  const today = new Date();
+  if (normalized.includes("ngày mai")) {
+    today.setDate(today.getDate() + 1);
+    return toIsoDate(today);
+  }
+  if (normalized.includes("hôm nay")) return toIsoDate(today);
+
+  const match = normalized.match(/\b(\d{1,2})[./-](\d{1,2})(?:[./-](\d{4}))?\b/);
+  if (!match) return "";
+  let year = Number(match[3] || today.getFullYear());
+  const month = Number(match[2]);
+  const day = Number(match[1]);
+  let candidate = new Date(year, month - 1, day);
+  if (!match[3] && candidate < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
+    year += 1;
+    candidate = new Date(year, month - 1, day);
+  }
+  if (
+    candidate.getFullYear() !== year
+    || candidate.getMonth() !== month - 1
+    || candidate.getDate() !== day
+  ) return "";
+  return toIsoDate(candidate);
+}
+
+function extractTimeOption(text) {
+  const normalized = text.toLocaleLowerCase("vi");
+  const exact = normalized.match(/\b([01]?\d|2[0-3])(?:[:h])([0-5]\d)\b/);
+  let hour = exact ? Number(exact[1]) : null;
+  if (hour === null && normalized.includes("buổi sáng")) hour = 9;
+  if (hour === null && (normalized.includes("buổi chiều") || normalized.includes("buổi trưa"))) hour = 14;
+  if (hour === null) return "";
+  if (hour < 9) return "07:30 – 09:00";
+  if (hour < 13) return "09:00 – 11:30";
+  if (hour < 15) return "13:30 – 15:00";
+  if (hour < 18) return "15:00 – 17:00";
+  return "";
+}
+
+function extractChatFormData(messages) {
+  const userMessages = messages
+    .filter((item) => item.role === "user")
+    .map((item) => String(item.content || ""));
+  const allMessages = messages.map((item) => String(item.content || ""));
+  const newestUserMessages = [...userMessages].reverse();
+  const newestMessages = [...allMessages].reverse();
+  const result = {};
+
+  const nameMatch = newestUserMessages
+    .map((message) => message.match(
+      /(?:tôi|mình|em)\s+(?:tên(?:\s+là)?|là)\s+([\p{L}][\p{L}\s]{1,50}?)(?=,|\.|\s+(?:số|sđt|điện thoại|email|muốn|cần|đặt|bị|khám)\b|$)/iu,
+    ))
+    .find(Boolean);
+  if (nameMatch) result.fullName = nameMatch[1].trim();
+
+  const phoneMatch = newestUserMessages
+    .map((message) => message.match(/(?:\+84|0)(?:[\s.-]?\d){9,10}/))
+    .find(Boolean);
+  if (phoneMatch) {
+    const compact = phoneMatch[0].replace(/[\s.-]/g, "");
+    result.phone = compact.startsWith("+84") ? compact : compact.slice(0, 11);
+  }
+
+  const emailMatch = newestUserMessages
+    .map((message) => message.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i))
+    .find(Boolean);
+  if (emailMatch) result.email = emailMatch[0];
+
+  const specialtyMap = [
+    ["tim mạch", "Tim mạch"],
+    ["nhi - sơ sinh", "Nhi khoa"],
+    ["nhi khoa", "Nhi khoa"],
+    ["cơ xương khớp", "Cơ xương khớp"],
+    ["sản phụ khoa", "Sản phụ khoa"],
+    ["nội tổng quát", "Khám tổng quát"],
+    ["khám tổng quát", "Khám tổng quát"],
+  ];
+  let specialty;
+  newestMessages.some((message) => {
+    const normalized = message.toLocaleLowerCase("vi");
+    specialty = specialtyMap.find(([keyword]) => normalized.includes(keyword));
+    return Boolean(specialty);
+  });
+  if (specialty) result.specialty = specialty[1];
+
+  const doctorOptions = [...bookingForm.elements.doctor.options]
+    .map((option) => option.value)
+    .filter((value) => value && value !== "Không chỉ định");
+  result.doctor = "";
+  newestMessages.some((message) => {
+    const normalized = message.toLocaleLowerCase("vi");
+    result.doctor = doctorOptions.find((doctor) =>
+      normalized.includes(doctor.toLocaleLowerCase("vi"))
+    ) || "";
+    return Boolean(result.doctor);
+  });
+
+  result.date = newestUserMessages.map(extractDate).find(Boolean) || "";
+  result.time = newestUserMessages.map(extractTimeOption).find(Boolean) || "";
+
+  const symptomPattern = /(đau|sốt|buồn nôn|tiêu chảy|khó thở|mệt|chóng mặt|triệu chứng|(?:^|[\s,.])ho(?:[\s,.!?]|$))/i;
+  const symptomMessage = newestUserMessages.find((message) => symptomPattern.test(message)) || "";
+  const symptomSegment = symptomMessage.match(
+    /(?:^|[,.]\s*)((?:(?:tôi|mình|em)\s+)?(?:bị|đang có)?\s*(?:đau|sốt|ho(?!\p{L})|buồn nôn|tiêu chảy|khó thở|mệt|chóng mặt|triệu chứng).*)$/iu,
+  );
+  result.note = symptomSegment?.[1]?.trim() || symptomMessage;
+  return result;
+}
+
+function applyHistoryToForm(messages, forceNotice = false) {
+  lastChatMessages = messages;
+  if (!messages.length || bookingForm.hidden) return;
+  const suggestions = extractChatFormData(messages);
+  const filled = [];
+  const fieldLabels = {
+    fullName: "họ tên",
+    phone: "số điện thoại",
+    email: "email",
+    specialty: "chuyên khoa",
+    doctor: "bác sĩ",
+    date: "ngày khám",
+    time: "khung giờ",
+    note: "ghi chú triệu chứng",
+  };
+
+  isApplyingAutofill = true;
+  try {
+    Object.entries(suggestions).forEach(([name, value]) => {
+      const field = bookingForm.elements[name];
+      if (!field || !value) return;
+      const isEmpty = !field.value || (name === "doctor" && field.value === "Không chỉ định");
+      const wasAutofilled = field.dataset.chatAutofilled === "true";
+      if (!isEmpty && !wasAutofilled) return;
+      if (wasAutofilled && field.value === value) return;
+      field.value = value;
+      if (field.value === value) {
+        field.dataset.chatAutofilled = "true";
+        filled.push(fieldLabels[name]);
+        field.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+  } finally {
+    isApplyingAutofill = false;
+  }
+
+  if (filled.length || forceNotice) {
+    autofillMessage.textContent = filled.length
+      ? `Đã tự điền từ đoạn chat: ${filled.join(", ")}.`
+      : "Chưa tìm thấy thêm thông tin phù hợp để tự điền.";
+    autofillNotice.hidden = false;
+  }
+}
+
+function clearChatAutofilledFields() {
+  [...bookingForm.elements].forEach((field) => {
+    if (field.dataset?.chatAutofilled !== "true") return;
+    if (field.tagName === "SELECT") {
+      field.selectedIndex = 0;
+    } else {
+      field.value = "";
+    }
+    delete field.dataset.chatAutofilled;
+  });
+  autofillNotice.hidden = true;
+}
+
+function syncServerFormSession(data) {
+  const instanceId = data.server_instance_id;
+  if (!instanceId) return data.messages || [];
+  const previousInstanceId = localStorage.getItem(FORM_SERVER_KEY);
+  if (!previousInstanceId || previousInstanceId !== instanceId) {
+    bookingForm.reset();
+    clearChatAutofilledFields();
+  }
+  localStorage.setItem(FORM_SERVER_KEY, instanceId);
+
+  const startedAt = Date.parse(data.server_started_at || "");
+  if (!Number.isFinite(startedAt)) return data.messages || [];
+  return (data.messages || []).filter((item) => {
+    const createdAt = Date.parse(item.created_at || "");
+    return Number.isFinite(createdAt) && createdAt >= startedAt;
+  });
+}
+
+[...bookingForm.elements].forEach((field) => {
+  if (!field.name) return;
+  const markAsManual = () => {
+    if (!isApplyingAutofill && field.dataset.chatAutofilled === "true") {
+      delete field.dataset.chatAutofilled;
+    }
+  };
+  field.addEventListener("input", markAsManual);
+  field.addEventListener("change", markAsManual);
+});
 
 bookingForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -46,6 +254,8 @@ document.querySelector("#new-booking").addEventListener("click", () => {
   successPanel.hidden = true;
   bookingForm.hidden = false;
   bookingSteps.forEach((step, index) => step.classList.toggle("active", index === 0));
+  autofillNotice.hidden = true;
+  applyHistoryToForm(lastChatMessages);
   bookingForm.elements.fullName.focus();
 });
 
@@ -235,7 +445,7 @@ function renderFailedTrace(query, message) {
   setTraceStatus("error", "Có lỗi");
 }
 
-function renderHistory(messages) {
+function renderHistory(messages, formMessages = messages) {
   chatMessages.replaceChildren();
   if (!messages.length) {
     appendMessage(bookingWelcome);
@@ -245,15 +455,18 @@ function renderHistory(messages) {
   messages.forEach((item) => {
     const sender = item.role === "user" ? "user" : "bot";
     appendMessage(item.content, sender);
-    if (sender === "bot") applyAssistantSuggestion(item.content);
   });
   restoreLatestTrace(messages);
+  applyHistoryToForm(formMessages);
 }
 
 async function loadChatHistory() {
   try {
     const data = await window.ChatAPI.getHistory();
-    if (!chatBusy) renderHistory(data.messages || []);
+    if (!chatBusy) {
+      const currentSessionMessages = syncServerFormSession(data);
+      renderHistory(data.messages || [], currentSessionMessages);
+    }
   } catch (error) {
     if (!chatBusy) {
       renderHistory([]);
@@ -273,7 +486,8 @@ async function handleChat(text) {
   const loading = appendMessage("Đang phân tích và tra cứu…", "bot", "loading-message");
   try {
     const data = await window.ChatAPI.sendMessage(cleanText);
-    renderHistory(data.messages || []);
+    const currentSessionMessages = syncServerFormSession(data);
+    renderHistory(data.messages || [], currentSessionMessages);
   } catch (error) {
     loading.remove();
     appendMessage(`Xin lỗi, chatbot chưa thể phản hồi: ${error.message}`);

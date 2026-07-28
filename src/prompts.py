@@ -204,7 +204,7 @@ BẮT ĐẦU:
 
 # Hai test có tool chỉ cần tối đa hai Action; bước thứ ba dành cho Final Answer
 # hoặc một lần phục hồi lỗi định dạng/tool.
-MAX_ITERATIONS = 5
+MAX_ITERATIONS = 8
 TIMEOUT_SECONDS = 10
 MAX_REPEATED_ACTIONS = 1
 
