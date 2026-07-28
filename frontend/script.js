@@ -102,7 +102,7 @@ chatToggle.addEventListener("click", () => setChat(chatPanel.hidden));
 chatClose.addEventListener("click", () => setChat(false));
 
 const homeWelcome =
-  "Xin chào! Tôi là trợ lý An Tâm. Tôi có thể giúp bạn định hướng chuyên khoa, tra cứu cơ sở hoặc tìm bác sĩ.";
+  "Xin chào! Tôi là trợ lý Vinmec. Tôi có thể giúp bạn định hướng chuyên khoa, tra cứu cơ sở hoặc tìm bác sĩ.";
 let chatBusy = false;
 
 function appendMessage(content, sender = "bot", extraClass = "") {

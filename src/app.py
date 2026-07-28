@@ -4,9 +4,12 @@ File chính ghép nối tất cả các thành phần: Tools + Prompts + Test Ca
 """
 
 import json
+import math
 import os
 import re
 import sys
+import time
+import unicodedata
 from ast import literal_eval
 from dotenv import load_dotenv
 
@@ -128,31 +131,214 @@ def execute_tool(tool_name: str, args: list) -> str:
         return f'LỖI: Tool "{tool_name}" thực thi thất bại: {exc}'
 
 
-def run_react_agent(user_query: str, provider):
+def _current_question(user_query: str) -> str:
+    """Tách câu hỏi hiện tại khỏi phần context do web_server thêm vào."""
+    marker = "Câu hỏi hiện tại:"
+    return user_query.rsplit(marker, 1)[-1].strip() if marker in user_query else user_query.strip()
+
+
+def _has_doctor_intent(user_query: str) -> bool:
+    """Chỉ cho phép luồng tìm bác sĩ khi câu hỏi hiện tại yêu cầu rõ."""
+    current = _current_question(user_query).lower()
+    return bool(
+        re.search(
+            r"\b(bác\s*sĩ|bac\s*si|doctor|chuyên\s*gia|ai\s+khám|ai\s+kham)\b",
+            current,
+        )
+    )
+
+
+def _normalize_for_intent(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value.lower())
+    return "".join(char for char in normalized if not unicodedata.combining(char)).replace("đ", "d")
+
+
+def _should_route_specialty_directly(user_query: str) -> bool:
+    """Route ổn định khi người dùng mô tả từ hai triệu chứng cụ thể trở lên."""
+    current = _normalize_for_intent(_current_question(user_query))
+    medication_intents = [
+        "ke don",
+        "thuoc gi",
+        "khang sinh",
+        "lieu dung",
+        "uong thuoc",
+    ]
+    if any(intent in current for intent in medication_intents):
+        return False
+    concrete_symptoms = [
+        "dau bung",
+        "buon non",
+        "tieu chay",
+        "dau rang",
+        "ho keo dai",
+        "kho tho",
+        "dau nguc",
+        "sot",
+        "bieng an",
+        "nghet mui",
+        "dau hong",
+    ]
+    return sum(symptom in current for symptom in concrete_symptoms) >= 2
+
+
+def _specialty_final_answer(observation: str) -> str | None:
+    """Tạo câu trả lời an toàn từ Observation khi chỉ cần định hướng khoa."""
+    try:
+        data = json.loads(observation)
+    except (TypeError, json.JSONDecodeError):
+        return None
+
+    status = data.get("status")
+    if status == "success" and data.get("specialties"):
+        specialty = data["specialties"][0]
+        name = specialty.get("specialty_name", "chuyên khoa phù hợp")
+        guidance = specialty.get("guidance", "")
+        facilities = specialty.get("available_at") or []
+        source = specialty.get("official_source", "")
+        disclaimer = data.get(
+            "disclaimer",
+            "Kết quả chỉ mang tính định hướng, không phải chẩn đoán y khoa.",
+        )
+        parts = [
+            f"Dựa trên triệu chứng bạn mô tả, bạn nên bắt đầu thăm khám tại khoa {name}.",
+        ]
+        if guidance:
+            parts.append(guidance)
+        if facilities:
+            parts.append(f"Chuyên khoa này hiện có tại: {', '.join(facilities)}.")
+        parts.append(disclaimer)
+        parts.append(
+            "Nếu triệu chứng nặng lên nhanh hoặc bạn cảm thấy tình trạng khẩn cấp, "
+            "hãy liên hệ cơ sở y tế gần nhất."
+        )
+        if source:
+            parts.append(f"Nguồn tham khảo chính thức: {source}")
+        return " ".join(parts)
+
+    if status in {"needs_clarification", "safety_stop", "error"}:
+        return data.get("message") or "Vui lòng cung cấp thêm thông tin để được hỗ trợ."
+    return None
+
+
+def run_react_agent_detailed(user_query: str, provider) -> dict:
     """
-    Dựng vòng lặp ReAct Agent (Thought -> Action -> Observation) có Guardrails.
+    Chạy ReAct Agent và trả answer kèm operational trace/metrics cho UI.
+
+    Token và chi phí là ước tính phục vụ demo vì provider adapter hiện chỉ trả text.
     """
     print(f"\n🤖 [REACT AGENT] Câu hỏi: {user_query}")
     history = f"User Question: {user_query}"
     action_counts = {}
+    trace = []
+    started_at = time.perf_counter()
+    input_characters = 0
+    output_characters = 0
+    tool_calls = 0
+    llm_calls = 0
+
+    def finish(answer: str) -> dict:
+        input_tokens = max(1, math.ceil(input_characters / 4)) if llm_calls else 0
+        output_tokens = max(1, math.ceil(output_characters / 4)) if llm_calls else 0
+        input_rate = float(os.getenv("LLM_INPUT_COST_PER_1M", "0.15"))
+        output_rate = float(os.getenv("LLM_OUTPUT_COST_PER_1M", "0.60"))
+        estimated_cost = (
+            (input_tokens * input_rate + output_tokens * output_rate) / 1_000_000
+            if llm_calls
+            else 0
+        )
+        return {
+            "answer": answer,
+            "trace": trace,
+            "metrics": {
+                "model": getattr(provider, "model_name", provider.__class__.__name__),
+                "provider": provider.__class__.__name__,
+                "iterations": len(trace),
+                "tool_calls": tool_calls,
+                "llm_calls": llm_calls,
+                "input_tokens_estimate": input_tokens,
+                "output_tokens_estimate": output_tokens,
+                "total_tokens_estimate": input_tokens + output_tokens,
+                "estimated_cost_usd": round(estimated_cost, 6),
+                "duration_ms": round((time.perf_counter() - started_at) * 1000),
+                "cost_note": "Ước tính demo; có thể cấu hình đơn giá bằng biến môi trường.",
+            },
+        }
+
+    # Các mô tả có nhiều triệu chứng cụ thể được định tuyến ổn định thay vì
+    # phụ thuộc model quyết định có gọi tool hay không.
+    if not _has_doctor_intent(user_query) and _should_route_specialty_directly(user_query):
+        current = _current_question(user_query)
+        direct_started = time.perf_counter()
+        observation = execute_tool("search_specialties", [current])
+        tool_calls += 1
+        trace.append(
+            {
+                "step": 1,
+                "type": "tool",
+                "label": "Định hướng chuyên khoa",
+                "thought": "Phát hiện nhiều triệu chứng cụ thể; tra cứu chuyên khoa phù hợp.",
+                "action": {"tool": "search_specialties", "args": [current]},
+                "observation": observation[:6_000],
+                "duration_ms": round((time.perf_counter() - direct_started) * 1000),
+            }
+        )
+        policy_answer = _specialty_final_answer(observation)
+        if policy_answer:
+            output_characters += len(policy_answer)
+            trace.append(
+                {
+                    "step": 2,
+                    "type": "final",
+                    "label": "Tổng hợp theo intent",
+                    "thought": "Đã có Observation để trả lời an toàn; không tìm bác sĩ khi chưa được yêu cầu.",
+                    "duration_ms": 0,
+                }
+            )
+            print(f"🏁 Final Answer: {policy_answer}")
+            return finish(policy_answer)
 
     for step in range(1, MAX_ITERATIONS + 1):
         print(f"\n--- 🔄 Vòng lặp ReAct (Step {step}/{MAX_ITERATIONS}) ---")
+        call_started = time.perf_counter()
+        input_characters += len(history) + len(REACT_SYSTEM_PROMPT)
+        llm_calls += 1
         response = provider.generate(history, system_prompt=REACT_SYSTEM_PROMPT)
+        output_characters += len(response or "")
         print(f"🤖 LLM Output:\n{response}")
+        thought_match = re.search(r"(?im)^\s*Thought\s*:\s*(.*)$", response or "")
+        thought = thought_match.group(1).strip()[:300] if thought_match else ""
 
         try:
             parsed = parse_llm_response(response)
         except ValueError as exc:
             observation = f"LỖI FORMAT: {exc}"
             print(f"👁️ Observation: {observation}")
+            trace.append(
+                {
+                    "step": step,
+                    "type": "format_error",
+                    "label": "Lỗi định dạng",
+                    "thought": thought,
+                    "observation": observation,
+                    "duration_ms": round((time.perf_counter() - call_started) * 1000),
+                }
+            )
             history += f"\n\n{response}\nObservation: {observation}"
             continue
 
         if parsed["type"] == "final":
             answer = parsed["content"]
+            trace.append(
+                {
+                    "step": step,
+                    "type": "final",
+                    "label": "Tổng hợp câu trả lời",
+                    "thought": thought or "Đã đủ dữ liệu để phản hồi.",
+                    "duration_ms": round((time.perf_counter() - call_started) * 1000),
+                }
+            )
             print(f"🏁 Final Answer: {answer}")
-            return answer
+            return finish(answer)
 
         # JSON tạo khóa ổn định ngay cả khi args chứa chuỗi Unicode.
         action_key = json.dumps(
@@ -167,20 +353,77 @@ def run_react_agent(user_query: str, provider):
                 "🛡️ REPEATED ACTION: Agent đã lặp lại cùng tool và tham số. "
                 "Ngắt lặp an toàn!"
             )
-            return SAFE_FALLBACK_MESSAGE
+            trace.append(
+                {
+                    "step": step,
+                    "type": "guardrail",
+                    "label": "Chặn hành động lặp",
+                    "thought": thought,
+                    "action": {"tool": parsed["tool"], "args": parsed["args"]},
+                    "duration_ms": round((time.perf_counter() - call_started) * 1000),
+                }
+            )
+            return finish(SAFE_FALLBACK_MESSAGE)
 
         print(f"🛠️ Action: {parsed['tool']}{parsed['args']}")
         observation = execute_tool(parsed["tool"], parsed["args"])
+        tool_calls += 1
         print(f"👁️ Observation:\n{observation}")
+        trace.append(
+            {
+                "step": step,
+                "type": "tool",
+                "label": "Gọi công cụ",
+                "thought": thought or "Cần dữ liệu đã xác minh từ công cụ.",
+                "action": {"tool": parsed["tool"], "args": parsed["args"]},
+                "observation": observation[:6_000],
+                "duration_ms": round((time.perf_counter() - call_started) * 1000),
+            }
+        )
 
         # Chỉ ứng dụng được phép chèn Observation thật vào lịch sử.
         history += f"\n\n{response}\nObservation: {observation}"
+
+        # Nếu người dùng chỉ cần định hướng khoa, không cho Agent tự mở rộng
+        # sang tìm bác sĩ. Kết thúc trực tiếp từ Observation đã xác minh.
+        if parsed["tool"] == "search_specialties" and not _has_doctor_intent(user_query):
+            policy_answer = _specialty_final_answer(observation)
+            if policy_answer:
+                output_characters += len(policy_answer)
+                trace.append(
+                    {
+                        "step": step + 1,
+                        "type": "final",
+                        "label": "Tổng hợp theo intent",
+                        "thought": (
+                            "Câu hỏi chỉ yêu cầu định hướng chuyên khoa; "
+                            "không gọi thêm công cụ tìm bác sĩ."
+                        ),
+                        "duration_ms": 0,
+                    }
+                )
+                print(f"🏁 Final Answer: {policy_answer}")
+                return finish(policy_answer)
 
     print(
         f"🛡️ GUARDRAIL TRIGGERED: Đã đạt giới hạn tối đa "
         f"{MAX_ITERATIONS} bước. Ngắt lặp an toàn!"
     )
-    return SAFE_FALLBACK_MESSAGE
+    trace.append(
+        {
+            "step": len(trace) + 1,
+            "type": "guardrail",
+            "label": "Đạt giới hạn vòng lặp",
+            "thought": "Agent đã dùng hết ngân sách vòng lặp.",
+            "duration_ms": 0,
+        }
+    )
+    return finish(SAFE_FALLBACK_MESSAGE)
+
+
+def run_react_agent(user_query: str, provider) -> str:
+    """API tương thích cũ: chỉ trả Final Answer."""
+    return run_react_agent_detailed(user_query, provider)["answer"]
 
 
 if __name__ == "__main__":

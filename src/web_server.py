@@ -33,7 +33,7 @@ MAX_USER_MESSAGE_LENGTH = 2_000
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from app import run_react_agent  # noqa: E402
+from app import run_react_agent_detailed  # noqa: E402
 from providers import get_llm_provider  # noqa: E402
 
 
@@ -72,7 +72,14 @@ class JsonHistoryStore:
             messages = data["conversations"].get(conversation_id, [])
             return messages if isinstance(messages, list) else []
 
-    def append_exchange(self, conversation_id: str, user_text: str, answer: str) -> list[dict]:
+    def append_exchange(
+        self,
+        conversation_id: str,
+        user_text: str,
+        answer: str,
+        trace: list[dict] | None = None,
+        metrics: dict | None = None,
+    ) -> list[dict]:
         now = datetime.now(timezone.utc).isoformat()
         new_messages = [
             {
@@ -86,6 +93,8 @@ class JsonHistoryStore:
                 "role": "assistant",
                 "content": answer,
                 "created_at": datetime.now(timezone.utc).isoformat(),
+                "trace": trace or [],
+                "metrics": metrics or {},
             },
         ]
         with self.lock:
@@ -126,7 +135,7 @@ def build_agent_query(message: str, history: list[dict]) -> str:
 
 
 class HospitalRequestHandler(SimpleHTTPRequestHandler):
-    server_version = "AnTamDemo/1.0"
+    server_version = "VinmecDemo/1.0"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(FRONTEND_DIR), **kwargs)
@@ -199,15 +208,26 @@ class HospitalRequestHandler(SimpleHTTPRequestHandler):
             agent_query = build_agent_query(message, history)
             # Tránh hai request cùng lúc dùng chung provider/console trace.
             with llm_lock:
-                answer = run_react_agent(agent_query, provider)
+                result = run_react_agent_detailed(agent_query, provider)
+            answer = result.get("answer")
             if not answer:
                 answer = "Xin lỗi, tôi chưa thể xử lý yêu cầu này. Vui lòng thử lại."
-            messages = history_store.append_exchange(conversation_id, message, answer)
+            trace = result.get("trace", [])
+            metrics = result.get("metrics", {})
+            messages = history_store.append_exchange(
+                conversation_id,
+                message,
+                answer,
+                trace=trace,
+                metrics=metrics,
+            )
             self._send_json(
                 {
                     "conversation_id": conversation_id,
                     "answer": answer,
                     "messages": messages,
+                    "trace": trace,
+                    "metrics": metrics,
                 }
             )
         except ValueError as exc:
@@ -237,7 +257,7 @@ def main() -> None:
     port = int(os.getenv("WEB_PORT", "5173"))
     server = ThreadingHTTPServer((host, port), HospitalRequestHandler)
     print("=" * 58)
-    print("AN TÂM MEDICAL — FRONTEND + REACT CHATBOT")
+    print("VINMEC — FRONTEND + REACT CHATBOT")
     print(f"Trang chủ : http://{host}:{port}")
     print(f"Đặt lịch : http://{host}:{port}/booking.html")
     print(f"Lịch sử  : {HISTORY_FILE}")

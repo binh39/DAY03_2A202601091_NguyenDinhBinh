@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Đặt lịch khám trực tuyến tại An Tâm Medical.">
-  <title>Đặt lịch khám | An Tâm Medical</title>
+  <meta name="description" content="Đặt lịch khám trực tuyến tại Vinmec.">
+  <title>Đặt lịch khám | Vinmec</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%2216%22 fill=%22%23126a70%22/><path fill=%22white%22 d=%22M13 7h6v6h6v6h-6v6h-6v-6H7v-6h6z%22/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,9 +24,9 @@
       </div>
     </div>
     <div class="container nav-wrap">
-      <a class="brand" href="index.html" aria-label="An Tâm Medical - Trang chủ">
+      <a class="brand" href="index.html" aria-label="Vinmec - Trang chủ">
         <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20S35.05 4 24 4Zm11 23h-8v8h-6v-8h-8v-6h8v-8h6v8h8v6Z"/></svg></span>
-        <span><strong>An Tâm</strong><small>Medical</small></span>
+        <span><strong>Vinmec</strong><small>Hospital</small></span>
       </a>
       <button class="menu-toggle" id="menu-toggle" aria-expanded="false" aria-controls="primary-nav" aria-label="Mở menu">
         <span></span><span></span><span></span>
@@ -77,7 +77,7 @@
             </label>
             <label class="full"><span class="field-label">Ghi chú</span><textarea name="note" rows="3" placeholder="Mô tả ngắn triệu chứng hoặc nhu cầu của bạn"></textarea></label>
           </div>
-          <label class="consent"><input type="checkbox" required><span>Tôi đồng ý để An Tâm Medical liên hệ xác nhận lịch hẹn và xử lý thông tin theo chính sách bảo mật.</span></label>
+          <label class="consent"><input type="checkbox" required><span>Tôi đồng ý để Vinmec liên hệ xác nhận lịch hẹn và xử lý thông tin theo chính sách bảo mật.</span></label>
           <button class="btn btn-primary submit-booking" type="submit">Xác nhận đặt lịch <span>→</span></button>
         </form>
 
@@ -103,7 +103,7 @@
           <div>
             <p class="eyebrow">Trợ lý sức khỏe</p>
             <h2 id="assistant-title">Bạn cần hỗ trợ?</h2>
-            <span class="online-status"><i></i> Trợ lý An Tâm đang trực tuyến</span>
+            <span class="online-status"><i></i> Trợ lý Vinmec đang trực tuyến</span>
           </div>
         </header>
 
@@ -115,7 +115,7 @@
         <div class="split-chat-messages" id="split-chat-messages" aria-live="polite">
           <div class="split-message bot">
             <span class="mini-avatar">✦</span>
-            <div>Xin chào! Tôi là trợ lý An Tâm. Bạn có thể mô tả nhu cầu hoặc triệu chứng chính, tôi sẽ giúp bạn chọn chuyên khoa phù hợp.</div>
+            <div>Xin chào! Tôi là trợ lý Vinmec. Bạn có thể mô tả nhu cầu hoặc triệu chứng chính, tôi sẽ giúp bạn chọn chuyên khoa phù hợp.</div>
           </div>
         </div>
 
@@ -135,6 +135,49 @@
         <p class="assistant-emergency">Trường hợp khẩn cấp, vui lòng gọi <a href="tel:19001234">1900 1234</a></p>
       </div>
     </section>
+
+    <aside class="trace-side" aria-labelledby="trace-title">
+      <div class="trace-inner">
+        <header class="trace-heading">
+          <div>
+            <p class="eyebrow">Agent observability</p>
+            <h2 id="trace-title">Quá trình xử lý</h2>
+          </div>
+          <span class="trace-status" id="trace-status"><i></i> Sẵn sàng</span>
+        </header>
+
+        <div class="trace-metrics" id="trace-metrics">
+          <article><span>Steps</span><strong id="metric-steps">0</strong></article>
+          <article><span>Tool calls</span><strong id="metric-tools">0</strong></article>
+          <article><span>Tokens</span><strong id="metric-tokens">—</strong></article>
+          <article><span>Est. cost</span><strong id="metric-cost">$0</strong></article>
+        </div>
+
+        <div class="trace-model">
+          <span>Model</span>
+          <strong id="metric-model">Chưa có phiên chạy</strong>
+          <small id="metric-duration">—</small>
+        </div>
+
+        <div class="trace-query" id="trace-query" hidden>
+          <span>Câu hỏi gần nhất</span>
+          <p id="trace-query-text"></p>
+        </div>
+
+        <div class="trace-empty" id="trace-empty">
+          <div class="trace-orbit" aria-hidden="true"><span>✦</span></div>
+          <h3>Chưa có trace</h3>
+          <p>Gửi một câu hỏi trong khung chat để xem các bước Agent gọi tool và tổng hợp kết quả.</p>
+        </div>
+
+        <ol class="trace-timeline" id="trace-timeline" aria-live="polite"></ol>
+
+        <footer class="trace-footer">
+          <span>ⓘ</span>
+          <p>Hiển thị operational trace có thể kiểm chứng. Token và chi phí chỉ là ước tính demo.</p>
+        </footer>
+      </div>
+    </aside>
   </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>

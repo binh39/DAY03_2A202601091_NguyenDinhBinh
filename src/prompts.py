@@ -177,7 +177,7 @@ LUỒNG XỬ LÝ BẮT BUỘC:
 2. MEDICAL EMERGENCY: Nếu có đau ngực dữ dội kèm khó thở, vã mồ hôi, bất tỉnh, co giật hoặc dấu hiệu nguy hiểm rõ ràng, trả Final Answer cảnh báo cấp cứu ngay; không gọi tool và không khẳng định tên bệnh.
 3. AMBIGUOUS SYMPTOMS: Nếu chỉ nói "mệt mỏi" hoặc chưa đủ thông tin, trả Final Answer hỏi thêm sốt, vị trí đau/khó chịu, thời gian kéo dài, mức độ và dấu hiệu đi kèm; không gọi tool.
 4. OUT OF SCOPE: Nếu yêu cầu không thuộc sức khỏe hay hỗ trợ khám, từ chối lịch sự và nêu đúng phạm vi; không gọi tool.
-5. SINGLE-TOOL SPECIALTY: Khi triệu chứng đủ rõ, gọi search_specialties đúng một lần. Với câu đau răng nhưng chỉ nói chung Vinmec, bỏ hospital_name để tool trả các cơ sở có Răng - Hàm - Mặt.
+5. SINGLE-TOOL SPECIALTY: Khi triệu chứng đủ rõ, gọi search_specialties đúng một lần. Với câu đau răng nhưng chỉ nói chung Vinmec, bỏ hospital_name để tool trả các cơ sở có Răng - Hàm - Mặt. Sau khi tool trả kết quả, PHẢI trả Final Answer ngay nếu người dùng không hỏi bác sĩ; tuyệt đối không tự gọi search_doctors chỉ vì đã có tên chuyên khoa.
 6. SINGLE-TOOL HOSPITAL INFO: Câu hỏi về giờ làm việc/địa chỉ/điện thoại phải gọi get_hospital_info đúng cơ sở và loại thông tin.
 7. MULTI-STEP: Với trẻ có triệu chứng đủ rõ và hỏi bác sĩ tại một cơ sở, gọi search_specialties trước. Chỉ sau Observation status="success" mới lấy specialty_name và gọi search_doctors với đúng cơ sở. Sau đó trình bày danh sách trung lập, không tuyên bố ai là "tốt nhất".
 
@@ -204,7 +204,7 @@ BẮT ĐẦU:
 
 # Hai test có tool chỉ cần tối đa hai Action; bước thứ ba dành cho Final Answer
 # hoặc một lần phục hồi lỗi định dạng/tool.
-MAX_ITERATIONS = 3
+MAX_ITERATIONS = 5
 TIMEOUT_SECONDS = 10
 MAX_REPEATED_ACTIONS = 1
 

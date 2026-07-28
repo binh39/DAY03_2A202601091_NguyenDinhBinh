@@ -1,4 +1,4 @@
-# An Tâm Medical — Frontend
+# Vinmec — Frontend
 
 Website bệnh viện mẫu tích hợp ReAct chatbot từ Python backend.
 
@@ -15,7 +15,8 @@ Mở `http://localhost:5173`.
 - Responsive cho desktop, tablet và mobile.
 - Menu mobile và điều hướng theo section.
 - Form đặt lịch có validation, mã lịch hẹn và lưu vào `localStorage`.
-- Trang `booking.html` chia đôi màn hình: lịch khám bên trái, chatbot bên phải.
+- Trang `booking.html` chia ba phần: form, chatbot và Agent Trace.
+- Agent Trace hiển thị step, tool/observation, model, thời gian, token và chi phí ước tính.
 - Trang `appointments.html` hiển thị và quản lý các lịch khám đã xác nhận.
 - Cả hai chatbot gọi chung ReAct Agent và tool trong `src/tools.py`.
 - Lịch sử hai chatbot được đồng bộ qua API và lưu tại `data/chat_history.json`.
