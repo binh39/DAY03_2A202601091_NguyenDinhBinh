@@ -1,0 +1,38 @@
+flowchart TD
+    Start["💬 Người dùng gửi câu hỏi"] --> SafetyCheck{"🛡️ Kiểm tra Safety Guardrails?"}
+
+    %% 🔴 KHU VỰC PHANH AN TOÀN & CẤP CỨU (GUARDRAILS - NO TOOLS)
+    SafetyCheck -- "Red Flag / Cấp cứu / Kê đơn thuốc" --> EmergencyGuard["🚨 PRESCRIPTIVE SAFETY & EMERGENCY GUARDRAIL"]
+    EmergencyGuard --> EmergencyAns["⚠️ Từ chối kê đơn & Yêu cầu đến ngay Cấp cứu Vinmec / Gọi 115"]
+
+    SafetyCheck -- "Yêu cầu ngoài phạm vi Vinmec" --> OutOfScopeGuard["🚫 OUT OF SCOPE GUARDRAIL"]
+    OutOfScopeGuard --> OutOfScopeAns["Từ chối lịch sự & Hướng dẫn phạm vi tư vấn sức khỏe Vinmec"]
+
+    SafetyCheck -- "Triệu chứng mơ hồ mệt mỏi" --> AmbiguousGuard["❓ AMBIGUOUS SYMPTOMS GUARDRAIL"]
+    AmbiguousGuard --> AmbiguousAns["Hỏi lại vị trí đau, thời gian, mức độ & dấu hiệu đi kèm"]
+
+    %% 🟢 KHU VỰC PHÂN LUỒNG XỬ LÝ (HYBRID FLOWCHART)
+    SafetyCheck -- "Câu hỏi hợp lệ" --> RouteCheck{"🔀 Phân loại yêu cầu?"}
+
+    %% Path 1: Single-Tool / Chatbot Direct
+    RouteCheck -- "Tra cứu thông tin cơ sở / Giờ làm việc" --> SingleToolPath["ℹ️ Single-Tool Path"]
+    SingleToolPath --> ActionInfo["Action: get_hospital_info"]
+    ActionInfo --> ObsInfo["Observation: Giờ hoạt động & Địa chỉ Vinmec"]
+    ObsInfo --> FinalInfo["Final Answer: Phản hồi thông tin chuẩn xác"]
+
+    %% Path 2: Multi-Step ReAct Agent Loop
+    RouteCheck -- "Tư vấn triệu chứng & Tìm bác sĩ" --> ReActLoop["🧠 ReAct Agent Multi-Step Loop"]
+    
+    subgraph ReAct_Process ["Vòng Lặp Suy Luận ReAct"]
+        ReActLoop --> Step1_Thought["Thought 1: Phân tích triệu chứng để định hướng chuyên khoa"]
+        Step1_Thought --> Step1_Action["Action 1: search_specialties"]
+        Step1_Action --> Step1_Obs["Observation 1: Khoa Nhi - Sơ sinh"]
+        
+        Step1_Obs --> Step2_Thought["Thought 2: Tìm danh sách bác sĩ tại cơ sở yêu cầu"]
+        Step2_Thought --> Step2_Action["Action 2: search_doctors"]
+        Step2_Action --> Step2_Obs["Observation 2: Hồ sơ danh sách Bác sĩ"]
+        
+        Step2_Obs --> Step3_Thought["Thought 3: Đã đủ thông tin để tư vấn an toàn"]
+    end
+
+    Step3_Thought --> FinalReAct["🏁 Final Answer: Tư vấn chuyên khoa, danh sách bác sĩ trung lập & Hướng dẫn liên hệ MyVinmec"]
