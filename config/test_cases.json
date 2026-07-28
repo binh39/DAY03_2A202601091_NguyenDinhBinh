@@ -32,12 +32,10 @@
     "expected_behavior": "Agent thực hiện quy trình ReAct: Bước 1 gọi tool phân loại chuyên khoa (Khoa Nhi), Bước 2 gọi tool tìm danh sách Bác sĩ Nhi tại Vinmec Central Park, cuối cùng tổng hợp tư vấn cho phụ huynh."
   },
   {
-    "id": "TC_VINMEC_04",
-    "category": "Edge Case - Ambiguous Symptoms",
-    "description": "Triệu chứng quá mập mờ, Agent không tự ý chẩn đoán mà phải hỏi thêm thông tin",
-    "input": "Tôi thấy trong người mệt mỏi quá, tư vấn giúp tôi.",
-    "expected_tools": [],
-    "expected_behavior": "Agent không tự ý gọi tool chẩn đoán hay phán bệnh bậy bạ, mà hỏi lại bệnh nhân các triệu chứng đi kèm (sốt, đau ở đâu, kéo dài bao lâu) để đưa ra định hướng chính xác hơn."
+    "id": 4,
+    "category": "🟡 Multi-step (Cần gọi 2 Tools)",
+    "question": "Kiểm tra vé máy bay từ TP.HCM đi Hà Nội ngày mai và dự báo thời tiết ở Hà Nội.",
+    "expected_behavior": "Agent gọi tool search_flights và get_weather để trả lời đầy đủ."
   },
   {
     "id": "TC_VINMEC_05",
