@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Đặt lịch khám trực tuyến tại An Tâm Medical.">
+  <title>Đặt lịch khám | An Tâm Medical</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%2216%22 fill=%22%23126a70%22/><path fill=%22white%22 d=%22M13 7h6v6h6v6h-6v6h-6v-6H7v-6h6z%22/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="booking.css">
+</head>
+<body class="booking-page">
+  <header class="booking-header">
+    <a class="brand" href="index.html" aria-label="An Tâm Medical - Về trang chủ">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 48 48"><path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20S35.05 4 24 4Zm11 23h-8v8h-6v-8h-8v-6h8v-8h6v8h8v6Z"/></svg>
+      </span>
+      <span><strong>An Tâm</strong><small>Medical</small></span>
+    </a>
+    <a class="back-home" href="index.html"><span aria-hidden="true">←</span> Về trang chủ</a>
+  </header>
+
+  <main class="booking-split">
+    <section class="appointment-side" aria-labelledby="appointment-title">
+      <div class="appointment-inner">
+        <div class="booking-intro">
+          <p class="eyebrow">Đặt lịch trực tuyến</p>
+          <h1 id="appointment-title">Lịch khám của bạn</h1>
+          <p>Chọn thông tin phù hợp, chúng tôi sẽ liên hệ xác nhận lịch hẹn trong thời gian sớm nhất.</p>
+        </div>
+
+        <ol class="booking-steps" aria-label="Tiến trình đặt lịch">
+          <li class="active"><span>1</span><small>Thông tin</small></li>
+          <li><span>2</span><small>Xác nhận</small></li>
+          <li><span>3</span><small>Hoàn tất</small></li>
+        </ol>
+
+        <form id="split-booking-form" class="split-booking-form">
+          <div class="form-grid">
+            <label class="full">Họ và tên <span>*</span><input name="fullName" autocomplete="name" required placeholder="Nguyễn Văn A"></label>
+            <label>Số điện thoại <span>*</span><input name="phone" type="tel" autocomplete="tel" required pattern="^(0|[+]84)[0-9 .-]{8,12}$" placeholder="090 123 4567"></label>
+            <label>Email<input name="email" type="email" autocomplete="email" placeholder="email@example.com"></label>
+            <label>Chuyên khoa <span>*</span>
+              <select name="specialty" required>
+                <option value="">Chọn chuyên khoa</option>
+                <option>Tim mạch</option><option>Nhi khoa</option><option>Cơ xương khớp</option><option>Sản phụ khoa</option><option>Khám tổng quát</option>
+              </select>
+            </label>
+            <label>Bác sĩ
+              <select name="doctor"><option>Không chỉ định</option><option>BS.CKII Nguyễn Minh An</option><option>ThS.BS Lê Thu Hà</option><option>TS.BS Phạm Hoàng Tú</option></select>
+            </label>
+            <label>Ngày khám <span>*</span><input id="split-appointment-date" name="date" type="date" required></label>
+            <label>Khung giờ <span>*</span>
+              <select name="time" required><option value="">Chọn khung giờ</option><option>07:30 – 09:00</option><option>09:00 – 11:30</option><option>13:30 – 15:00</option><option>15:00 – 17:00</option></select>
+            </label>
+            <label class="full">Ghi chú<textarea name="note" rows="3" placeholder="Mô tả ngắn triệu chứng hoặc nhu cầu của bạn"></textarea></label>
+          </div>
+          <label class="consent"><input type="checkbox" required><span>Tôi đồng ý để An Tâm Medical liên hệ xác nhận lịch hẹn và xử lý thông tin theo chính sách bảo mật.</span></label>
+          <button class="btn btn-primary submit-booking" type="submit">Xác nhận đặt lịch <span>→</span></button>
+        </form>
+
+        <section class="split-success" id="split-success" hidden aria-live="polite">
+          <div class="success-mark">✓</div>
+          <p class="eyebrow">Đăng ký thành công</p>
+          <h2>Cảm ơn bạn đã tin tưởng!</h2>
+          <p id="split-success-message"></p>
+          <div class="success-actions">
+            <button class="btn btn-primary" id="new-booking">Đặt lịch khác</button>
+            <a class="btn btn-outline" href="index.html">Về trang chủ</a>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="assistant-side" aria-labelledby="assistant-title">
+      <div class="assistant-glow"></div>
+      <div class="assistant-inner">
+        <header class="assistant-heading">
+          <div class="assistant-avatar">✦</div>
+          <div>
+            <p class="eyebrow">Trợ lý sức khỏe</p>
+            <h2 id="assistant-title">Bạn cần hỗ trợ?</h2>
+            <span class="online-status"><i></i> Trợ lý An Tâm đang trực tuyến</span>
+          </div>
+        </header>
+
+        <div class="assistant-note">
+          <span>i</span>
+          <p>Chatbot hỗ trợ chọn chuyên khoa và điền lịch khám. Thông tin chỉ mang tính tham khảo, không thay thế chẩn đoán y khoa.</p>
+        </div>
+
+        <div class="split-chat-messages" id="split-chat-messages" aria-live="polite">
+          <div class="split-message bot">
+            <span class="mini-avatar">✦</span>
+            <div>Xin chào! Tôi là trợ lý An Tâm. Bạn có thể mô tả nhu cầu hoặc triệu chứng chính, tôi sẽ giúp bạn chọn chuyên khoa phù hợp.</div>
+          </div>
+        </div>
+
+        <div class="split-chat-suggestions" id="split-chat-suggestions">
+          <button data-message="Tôi chưa biết chọn chuyên khoa nào">Gợi ý chuyên khoa</button>
+          <button data-message="Bệnh viện làm việc lúc nào?">Giờ làm việc</button>
+          <button data-message="Tôi cần khám tim mạch">Khám tim mạch</button>
+        </div>
+
+        <form class="split-chat-form" id="split-chat-form">
+          <label class="sr-only" for="split-chat-input">Nhập tin nhắn</label>
+          <input id="split-chat-input" autocomplete="off" placeholder="Nhập câu hỏi của bạn...">
+          <button type="submit" aria-label="Gửi tin nhắn">
+            <svg viewBox="0 0 24 24"><path d="m3.4 20.4 18-7.7c.8-.3.8-1.5 0-1.8l-18-7.7c-.7-.3-1.4.3-1.2 1l2.1 6.4 9.3 1.2-9.3 1.2-2.1 6.4c-.2.7.5 1.3 1.2 1Z"/></svg>
+          </button>
+        </form>
+        <p class="assistant-emergency">Trường hợp khẩn cấp, vui lòng gọi <a href="tel:19001234">1900 1234</a></p>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="booking.js"></script>
+</body>
+</html>
