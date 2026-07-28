@@ -8,19 +8,38 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%2216%22 fill=%22%23126a70%22/><path fill=%22white%22 d=%22M13 7h6v6h6v6h-6v6h-6v-6H7v-6h6z%22/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif:ital,wght@0,400;0,600;1,400&display=swap&subset=vietnamese" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="booking.css">
 </head>
 <body class="booking-page">
-  <header class="booking-header">
-    <a class="brand" href="index.html" aria-label="An Tâm Medical - Về trang chủ">
-      <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 48 48"><path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20S35.05 4 24 4Zm11 23h-8v8h-6v-8h-8v-6h8v-8h6v8h8v6Z"/></svg>
-      </span>
-      <span><strong>An Tâm</strong><small>Medical</small></span>
-    </a>
-    <a class="back-home" href="index.html"><span aria-hidden="true">←</span> Về trang chủ</a>
+  <header class="site-header" id="top">
+    <div class="utility-bar">
+      <div class="container utility-inner">
+        <span>Chăm sóc tận tâm — Điều trị chuẩn mực</span>
+        <div>
+          <a href="tel:19001234">Cấp cứu 24/7: <strong>1900 1234</strong></a>
+          <span class="utility-divider"></span><span>VI</span>
+        </div>
+      </div>
+    </div>
+    <div class="container nav-wrap">
+      <a class="brand" href="index.html" aria-label="An Tâm Medical - Trang chủ">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20S35.05 4 24 4Zm11 23h-8v8h-6v-8h-8v-6h8v-8h6v8h8v6Z"/></svg></span>
+        <span><strong>An Tâm</strong><small>Medical</small></span>
+      </a>
+      <button class="menu-toggle" id="menu-toggle" aria-expanded="false" aria-controls="primary-nav" aria-label="Mở menu">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="primary-nav" id="primary-nav" aria-label="Điều hướng chính">
+        <a href="index.html#about">Về chúng tôi</a>
+        <a href="index.html#specialties">Chuyên khoa</a>
+        <a href="index.html#doctors">Bác sĩ</a>
+        <a href="index.html#patient-guide">Hướng dẫn</a>
+        <a href="appointments.html">Lịch khám</a>
+        <a class="btn btn-primary nav-book active-page" href="booking.html">Đặt lịch khám</a>
+      </nav>
+    </div>
   </header>
 
   <main class="booking-split">
@@ -40,23 +59,23 @@
 
         <form id="split-booking-form" class="split-booking-form">
           <div class="form-grid">
-            <label class="full">Họ và tên <span>*</span><input name="fullName" autocomplete="name" required placeholder="Nguyễn Văn A"></label>
-            <label>Số điện thoại <span>*</span><input name="phone" type="tel" autocomplete="tel" required pattern="^(0|[+]84)[0-9 .-]{8,12}$" placeholder="090 123 4567"></label>
-            <label>Email<input name="email" type="email" autocomplete="email" placeholder="email@example.com"></label>
-            <label>Chuyên khoa <span>*</span>
+            <label class="full"><span class="field-label">Họ và tên <b>*</b></span><input name="fullName" autocomplete="name" required placeholder="Nguyễn Văn A"></label>
+            <label><span class="field-label">Số điện thoại <b>*</b></span><input name="phone" type="tel" autocomplete="tel" required pattern="^(0|[+]84)[0-9 .]{8,12}$" placeholder="090 123 4567"></label>
+            <label><span class="field-label">Email</span><input name="email" type="email" autocomplete="email" placeholder="email@example.com"></label>
+            <label><span class="field-label">Chuyên khoa <b>*</b></span>
               <select name="specialty" required>
                 <option value="">Chọn chuyên khoa</option>
                 <option>Tim mạch</option><option>Nhi khoa</option><option>Cơ xương khớp</option><option>Sản phụ khoa</option><option>Khám tổng quát</option>
               </select>
             </label>
-            <label>Bác sĩ
+            <label><span class="field-label">Bác sĩ</span>
               <select name="doctor"><option>Không chỉ định</option><option>BS.CKII Nguyễn Minh An</option><option>ThS.BS Lê Thu Hà</option><option>TS.BS Phạm Hoàng Tú</option></select>
             </label>
-            <label>Ngày khám <span>*</span><input id="split-appointment-date" name="date" type="date" required></label>
-            <label>Khung giờ <span>*</span>
+            <label><span class="field-label">Ngày khám <b>*</b></span><input id="split-appointment-date" name="date" type="date" required></label>
+            <label><span class="field-label">Khung giờ <b>*</b></span>
               <select name="time" required><option value="">Chọn khung giờ</option><option>07:30 – 09:00</option><option>09:00 – 11:30</option><option>13:30 – 15:00</option><option>15:00 – 17:00</option></select>
             </label>
-            <label class="full">Ghi chú<textarea name="note" rows="3" placeholder="Mô tả ngắn triệu chứng hoặc nhu cầu của bạn"></textarea></label>
+            <label class="full"><span class="field-label">Ghi chú</span><textarea name="note" rows="3" placeholder="Mô tả ngắn triệu chứng hoặc nhu cầu của bạn"></textarea></label>
           </div>
           <label class="consent"><input type="checkbox" required><span>Tôi đồng ý để An Tâm Medical liên hệ xác nhận lịch hẹn và xử lý thông tin theo chính sách bảo mật.</span></label>
           <button class="btn btn-primary submit-booking" type="submit">Xác nhận đặt lịch <span>→</span></button>
@@ -69,6 +88,7 @@
           <p id="split-success-message"></p>
           <div class="success-actions">
             <button class="btn btn-primary" id="new-booking">Đặt lịch khác</button>
+            <a class="btn btn-outline" href="appointments.html">Xem lịch khám</a>
             <a class="btn btn-outline" href="index.html">Về trang chủ</a>
           </div>
         </section>
@@ -118,6 +138,7 @@
   </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="chat-api.js"></script>
   <script src="booking.js"></script>
 </body>
 </html>

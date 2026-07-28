@@ -9,7 +9,7 @@
   --coral: #e78268;
   --line: #dfe8e6;
   --shadow: 0 24px 70px rgba(18, 53, 58, .16);
-  --serif: "DM Serif Display", Georgia, serif;
+  --serif: "Noto Serif", Georgia, serif;
   --sans: "Be Vietnam Pro", system-ui, sans-serif;
 }
 
@@ -187,6 +187,12 @@ textarea { resize: vertical; }
 .chat-messages { height: 250px; overflow-y: auto; padding: 18px; background: #f7f9f8; }
 .message { width: fit-content; max-width: 82%; margin-bottom: 10px; padding: 10px 12px; border-radius: 13px 13px 13px 2px; background: #fff; color: #40585b; box-shadow: 0 3px 10px rgba(18,53,58,.06); font-size: 10px; }
 .message.user { margin-left: auto; border-radius: 13px 13px 2px 13px; background: var(--teal); color: #fff; }
+.chat-link { color: #0a747c; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.message.user .chat-link { color: #fff; }
+.assistant-side .chat-link { color: #a9e4df; }
+.split-message.user .chat-link { color: var(--teal); }
+.loading-message { opacity: .65; animation: thinking-pulse 1s ease-in-out infinite alternate; }
+@keyframes thinking-pulse { to { opacity: 1; } }
 .chat-suggestions { display: flex; gap: 6px; padding: 10px 12px 5px; overflow-x: auto; }
 .chat-suggestions button { flex: none; padding: 6px 9px; border: 1px solid var(--teal-soft); border-radius: 20px; background: #fff; color: var(--teal); font-size: 8px; cursor: pointer; }
 .chat-form { display: flex; align-items: center; padding: 8px 10px 11px; }

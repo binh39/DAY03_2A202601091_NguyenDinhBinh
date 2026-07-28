@@ -3,6 +3,14 @@ const successPanel = document.querySelector("#split-success");
 const successMessage = document.querySelector("#split-success-message");
 const appointmentDate = document.querySelector("#split-appointment-date");
 const bookingSteps = document.querySelectorAll(".booking-steps li");
+const menuToggle = document.querySelector("#menu-toggle");
+const primaryNav = document.querySelector("#primary-nav");
+
+menuToggle.addEventListener("click", () => {
+  const isOpen = primaryNav.classList.toggle("open");
+  menuToggle.setAttribute("aria-expanded", String(isOpen));
+  menuToggle.setAttribute("aria-label", isOpen ? "Đóng menu" : "Mở menu");
+});
 
 const localDate = new Date();
 localDate.setMinutes(localDate.getMinutes() - localDate.getTimezoneOffset());
@@ -15,6 +23,7 @@ bookingForm.addEventListener("submit", (event) => {
   const appointment = Object.fromEntries(new FormData(bookingForm).entries());
   appointment.id = `ATM-${Date.now().toString().slice(-6)}`;
   appointment.createdAt = new Date().toISOString();
+  appointment.status = "pending";
 
   const appointments = JSON.parse(localStorage.getItem("anTamAppointments") || "[]");
   appointments.push(appointment);
@@ -44,9 +53,13 @@ const chatForm = document.querySelector("#split-chat-form");
 const chatInput = document.querySelector("#split-chat-input");
 const chatMessages = document.querySelector("#split-chat-messages");
 
-function appendMessage(content, sender = "bot") {
+const bookingWelcome =
+  "Xin chào! Tôi là trợ lý An Tâm. Bạn có thể mô tả nhu cầu hoặc triệu chứng chính, tôi sẽ giúp định hướng chuyên khoa.";
+let chatBusy = false;
+
+function appendMessage(content, sender = "bot", extraClass = "") {
   const wrapper = document.createElement("div");
-  wrapper.className = `split-message ${sender}`;
+  wrapper.className = `split-message ${sender} ${extraClass}`.trim();
   if (sender === "bot") {
     const avatar = document.createElement("span");
     avatar.className = "mini-avatar";
@@ -54,53 +67,80 @@ function appendMessage(content, sender = "bot") {
     wrapper.appendChild(avatar);
   }
   const bubble = document.createElement("div");
-  bubble.textContent = content;
+  window.ChatAPI.renderRichText(bubble, content);
   wrapper.appendChild(bubble);
   chatMessages.appendChild(wrapper);
   chatMessages.scrollTop = chatMessages.scrollHeight;
+  return wrapper;
 }
 
-function suggestSpecialty(text) {
+function applyAssistantSuggestion(text) {
   const normalized = text.toLocaleLowerCase("vi");
   const specialtySelect = bookingForm.elements.specialty;
-
-  if (normalized.includes("tim") || normalized.includes("ngực") || normalized.includes("huyết áp")) {
+  if (normalized.includes("tim mạch")) {
     specialtySelect.value = "Tim mạch";
-    return "Với nhu cầu bạn mô tả, bạn có thể chọn chuyên khoa Tim mạch. Tôi đã chọn sẵn chuyên khoa này trong lịch khám bên trái.";
-  }
-  if (normalized.includes("trẻ") || normalized.includes("bé") || normalized.includes("nhi")) {
+  } else if (normalized.includes("nhi - sơ sinh") || normalized.includes("nhi khoa")) {
     specialtySelect.value = "Nhi khoa";
-    return "Bạn có thể chọn Nhi khoa. Tôi đã cập nhật lựa chọn trong biểu mẫu bên trái.";
-  }
-  if (normalized.includes("xương") || normalized.includes("khớp") || normalized.includes("lưng")) {
+  } else if (normalized.includes("cơ xương khớp")) {
     specialtySelect.value = "Cơ xương khớp";
-    return "Cơ xương khớp có thể phù hợp với mô tả của bạn. Tôi đã chọn sẵn trong biểu mẫu.";
   }
-  if (normalized.includes("giờ") || normalized.includes("làm việc")) {
-    return "Bệnh viện làm việc từ 07:00–19:00, Thứ 2 đến Thứ 7. Khoa Cấp cứu hoạt động 24/7.";
-  }
-  if (normalized.includes("chuyên khoa") || normalized.includes("không biết")) {
-    return "Bạn hãy mô tả triệu chứng chính, vị trí khó chịu và thời gian xuất hiện. Tôi sẽ gợi ý chuyên khoa phù hợp hơn.";
-  }
-  return "Cảm ơn bạn đã chia sẻ. Chatbot đang ở chế độ demo; bạn có thể hỏi về chuyên khoa, giờ làm việc hoặc mô tả triệu chứng chính.";
 }
 
-function handleChat(text) {
+function renderHistory(messages) {
+  chatMessages.replaceChildren();
+  if (!messages.length) {
+    appendMessage(bookingWelcome);
+    return;
+  }
+  messages.forEach((item) => {
+    const sender = item.role === "user" ? "user" : "bot";
+    appendMessage(item.content, sender);
+    if (sender === "bot") applyAssistantSuggestion(item.content);
+  });
+}
+
+async function loadChatHistory() {
+  try {
+    const data = await window.ChatAPI.getHistory();
+    renderHistory(data.messages || []);
+  } catch (error) {
+    renderHistory([]);
+    appendMessage(`Không tải được lịch sử: ${error.message}`);
+  }
+}
+
+async function handleChat(text) {
   const cleanText = text.trim();
-  if (!cleanText) return;
+  if (!cleanText || chatBusy) return;
+  chatBusy = true;
   appendMessage(cleanText, "user");
   chatInput.value = "";
-  setTimeout(() => appendMessage(suggestSpecialty(cleanText)), 350);
+  chatInput.disabled = true;
+  const loading = appendMessage("Đang phân tích và tra cứu…", "bot", "loading-message");
+  try {
+    const data = await window.ChatAPI.sendMessage(cleanText);
+    renderHistory(data.messages || []);
+  } catch (error) {
+    loading.remove();
+    appendMessage(`Xin lỗi, chatbot chưa thể phản hồi: ${error.message}`);
+  } finally {
+    chatBusy = false;
+    chatInput.disabled = false;
+    chatInput.focus();
+  }
 }
 
 chatForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  handleChat(chatInput.value);
+  void handleChat(chatInput.value);
 });
 
 document.querySelectorAll("#split-chat-suggestions button").forEach((button) => {
-  button.addEventListener("click", () => handleChat(button.dataset.message));
+  button.addEventListener("click", () => void handleChat(button.dataset.message));
 });
 
-// Điểm nối chatbot thật:
-// Thay suggestSpecialty() bằng fetch('/api/chat', { method: 'POST', ... }).
+void loadChatHistory();
+window.addEventListener("focus", loadChatHistory);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) void loadChatHistory();
+});

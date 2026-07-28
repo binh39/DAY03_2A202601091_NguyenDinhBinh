@@ -8,7 +8,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%2216%22 fill=%22%23126a70%22/><path fill=%22white%22 d=%22M13 7h6v6h6v6h-6v6h-6v-6H7v-6h6z%22/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif:ital,wght@0,400;0,600;1,400&display=swap&subset=vietnamese" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -42,6 +42,7 @@
         <a href="#specialties">Chuyên khoa</a>
         <a href="#doctors">Bác sĩ</a>
         <a href="#patient-guide">Hướng dẫn</a>
+        <a href="appointments.html">Lịch khám</a>
         <button class="btn btn-primary nav-book" data-booking-open>Đặt lịch khám</button>
       </nav>
     </div>
@@ -221,7 +222,7 @@
       <form id="booking-form">
         <div class="form-grid">
           <label class="full">Họ và tên <span>*</span><input name="fullName" autocomplete="name" required placeholder="Nguyễn Văn A"></label>
-          <label>Số điện thoại <span>*</span><input name="phone" type="tel" autocomplete="tel" required pattern="^(0|[+]84)[0-9 .-]{8,12}$" placeholder="090 123 4567"></label>
+          <label>Số điện thoại <span>*</span><input name="phone" type="tel" autocomplete="tel" required pattern="^(0|[+]84)[0-9 .]{8,12}$" placeholder="090 123 4567"></label>
           <label>Email<input name="email" type="email" autocomplete="email" placeholder="email@example.com"></label>
           <label>Chuyên khoa <span>*</span>
             <select name="specialty" required>
@@ -279,6 +280,7 @@
   </aside>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="chat-api.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

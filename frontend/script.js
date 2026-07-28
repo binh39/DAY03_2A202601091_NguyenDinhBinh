@@ -101,49 +101,72 @@ function setChat(open) {
 chatToggle.addEventListener("click", () => setChat(chatPanel.hidden));
 chatClose.addEventListener("click", () => setChat(false));
 
-function appendMessage(content, sender = "bot") {
+const homeWelcome =
+  "Xin chào! Tôi là trợ lý An Tâm. Tôi có thể giúp bạn định hướng chuyên khoa, tra cứu cơ sở hoặc tìm bác sĩ.";
+let chatBusy = false;
+
+function appendMessage(content, sender = "bot", extraClass = "") {
   const message = document.createElement("div");
-  message.className = `message ${sender}`;
-  message.textContent = content;
+  message.className = `message ${sender} ${extraClass}`.trim();
+  window.ChatAPI.renderRichText(message, content);
   chatMessages.appendChild(message);
   chatMessages.scrollTop = chatMessages.scrollHeight;
+  return message;
 }
 
-function getBotResponse(text) {
-  const normalized = text.toLocaleLowerCase("vi");
-  if (normalized.includes("đặt lịch") || normalized.includes("lịch khám")) {
-    setTimeout(openBooking, 500);
-    return "Tôi đã mở biểu mẫu đặt lịch cho bạn. Hãy chọn chuyên khoa và thời gian phù hợp nhé.";
+function renderHistory(messages) {
+  chatMessages.replaceChildren();
+  if (!messages.length) {
+    appendMessage(homeWelcome);
+    return;
   }
-  if (normalized.includes("giờ") || normalized.includes("làm việc")) {
-    return "Bệnh viện làm việc từ 07:00–19:00, Thứ 2 đến Thứ 7. Khoa Cấp cứu hoạt động 24/7.";
-  }
-  if (normalized.includes("chuyên khoa") || normalized.includes("đau")) {
-    return "Bạn có thể mô tả vị trí hoặc triệu chứng chính. Hiện website có Tim mạch, Nhi khoa, Cơ xương khớp, Sản phụ khoa và Khám tổng quát.";
-  }
-  if (normalized.includes("địa chỉ") || normalized.includes("ở đâu")) {
-    return "Địa chỉ mẫu hiện tại là 123 Đường Sức Khỏe, TP. Hồ Chí Minh. Thông tin chính thức có thể cập nhật sau.";
-  }
-  return "Cảm ơn bạn đã chia sẻ. Chatbot hiện đang ở chế độ demo. Tôi có thể hỗ trợ đặt lịch, giờ làm việc, địa chỉ hoặc gợi ý chuyên khoa.";
+  messages.forEach((item) => {
+    appendMessage(item.content, item.role === "user" ? "user" : "bot");
+  });
 }
 
-function handleChat(text) {
+async function loadChatHistory() {
+  try {
+    const data = await window.ChatAPI.getHistory();
+    renderHistory(data.messages || []);
+  } catch (error) {
+    renderHistory([]);
+    appendMessage(`Không tải được lịch sử: ${error.message}`);
+  }
+}
+
+async function handleChat(text) {
   const cleanText = text.trim();
-  if (!cleanText) return;
+  if (!cleanText || chatBusy) return;
+  chatBusy = true;
   appendMessage(cleanText, "user");
   chatInput.value = "";
-  setTimeout(() => appendMessage(getBotResponse(cleanText)), 350);
+  chatInput.disabled = true;
+  const loading = appendMessage("Đang tra cứu thông tin…", "bot", "loading-message");
+  try {
+    const data = await window.ChatAPI.sendMessage(cleanText);
+    renderHistory(data.messages || []);
+  } catch (error) {
+    loading.remove();
+    appendMessage(`Xin lỗi, chatbot chưa thể phản hồi: ${error.message}`);
+  } finally {
+    chatBusy = false;
+    chatInput.disabled = false;
+    chatInput.focus();
+  }
 }
 
 chatForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  handleChat(chatInput.value);
+  void handleChat(chatInput.value);
 });
 
 document.querySelectorAll("#chat-suggestions button").forEach((button) => {
-  button.addEventListener("click", () => handleChat(button.textContent));
+  button.addEventListener("click", () => void handleChat(button.textContent));
 });
 
-// Điểm nối API chatbot sau này:
-// Thay getBotResponse() bằng fetch('/api/chat', { method: 'POST', ... })
-// và giữ nguyên appendMessage() để hiển thị phản hồi từ backend.
+void loadChatHistory();
+window.addEventListener("focus", loadChatHistory);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) void loadChatHistory();
+});
