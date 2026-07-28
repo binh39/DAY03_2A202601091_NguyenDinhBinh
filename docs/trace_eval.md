@@ -1,19 +1,20 @@
 # 📊 BÁO CÁO GIÁM SÁT & ĐÁNH GIÁ (OBSERVABILITY TRACE LOGS)
 
-*Dành cho Role 5: Observability & Reviewer*  
+*Dành cho Role 5: Observability & Reviewer*
 *Hệ thống: Trợ Lý Tư Vấn Sức Khỏe & Định Hướng Khám Y Tế Vinmec (Đề tài 6)*
 
 ---
 
 ## 🎯 1. BẢNG CHẤM ĐIỂM AGENTIC FIT (SCORING MATRIX)
 
-| Tiêu chí | Điểm (1-5) | Lý do đánh giá |
-| --- | --- | --- |
-| 🧠 **Multi-step Reasoning** | `5/5` | Cần phân tích triệu chứng ➔ định hướng chuyên khoa (`search_specialties`) ➔ tra cứu danh sách bác sĩ (`search_doctors`) ➔ tổng hợp tư vấn. |
-| 🛠️ **Tool Interaction** | `5/5` | Bắt buộc truy xuất dữ liệu Vinmec qua 3 tools chính thức: `search_specialties`, `get_hospital_info`, `search_doctors`. |
-| 🔀 **Dynamic Decision** | `5/5` | Phải phân luồng linh hoạt: Từ chối kê đơn (`PRESCRIPTIVE SAFETY`), kích hoạt Cấp cứu (`MEDICAL EMERGENCY`), hoặc hỏi thêm (`AMBIGUOUS SYMPTOMS`). |
-| ⏳ **Long Horizon** | `4/5` | Quy trình gồm 2-3 bước xử lý nối tiếp (`Thought -> Action -> Observation`), thông tin bước trước là đầu vào cho bước sau. |
-| **TỔNG ĐIỂM FIT** | **19/20** | **KẾT LUẬN: BÀI TOÁN TƯ VẤN Y TẾ VINMEC RẤT CẦN THIẾT DÙNG REACT AGENT!** |
+
+| Tiêu chí                 | Điểm (1-5) | Lý do đánh giá                                                                                                                                                |
+| -------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🧠**Multi-step Reasoning** | `5/5`        | Cần phân tích triệu chứng ➔ định hướng chuyên khoa (`search_specialties`) ➔ tra cứu danh sách bác sĩ (`search_doctors`) ➔ tổng hợp tư vấn.   |
+| 🛠️**Tool Interaction**   | `5/5`        | Bắt buộc truy xuất dữ liệu Vinmec qua 3 tools chính thức:`search_specialties`, `get_hospital_info`, `search_doctors`.                                      |
+| 🔀**Dynamic Decision**     | `5/5`        | Phải phân luồng linh hoạt: Từ chối kê đơn (`PRESCRIPTIVE SAFETY`), kích hoạt Cấp cứu (`MEDICAL EMERGENCY`), hoặc hỏi thêm (`AMBIGUOUS SYMPTOMS`). |
+| ⏳**Long Horizon**         | `4/5`        | Quy trình gồm 2-3 bước xử lý nối tiếp (`Thought -> Action -> Observation`), thông tin bước trước là đầu vào cho bước sau.                      |
+| **TỔNG ĐIỂM FIT**       | **19/20**    | **KẾT LUẬN: BÀI TOÁN TƯ VẤN Y TẾ VINMEC RẤT CẦN THIẾT DÙNG REACT AGENT!**                                                                              |
 
 ---
 
@@ -75,10 +76,11 @@
 #### 💡 Các Guardrails chuẩn mực ở Agent V2 (Được định nghĩa trong `src/prompts.py`):
 
 - **Quy tắc Prescriptive Safety**: Đặt nhóm `expected_tools = []`, cấm xuất hiện tên thuốc trong mọi câu phản hồi.
-- **Phanh ngắt an toàn**: Cấu hình `MAX_ITERATIONS = 3`, `MAX_REPEATED_ACTIONS = 1`.
+- **Phanh ngắt an toàn**: Cấu hình `MAX_ITERATIONS = 8`, `MAX_REPEATED_ACTIONS = 1`.
 - **Safe Fallback Message**:
 
   > `"Xin lỗi, tôi chưa thể hoàn thành yêu cầu bằng dữ liệu đã được xác minh. Vui lòng cung cấp thêm thông tin hoặc liên hệ trực tiếp Vinmec."`
+  >
 
 ---
 
@@ -109,16 +111,16 @@ flowchart TD
 
     %% Path 2: Multi-Step ReAct Agent Loop
     RouteCheck -- "Tư vấn triệu chứng & Tìm bác sĩ" --> ReActLoop["🧠 ReAct Agent Multi-Step Loop"]
-    
+  
     subgraph ReAct_Process ["Vòng Lặp Suy Luận ReAct"]
         ReActLoop --> Step1_Thought["Thought 1: Phân tích triệu chứng để định hướng chuyên khoa"]
         Step1_Thought --> Step1_Action["Action 1: search_specialties"]
         Step1_Action --> Step1_Obs["Observation 1: Khoa Nhi - Sơ sinh"]
-        
+      
         Step1_Obs --> Step2_Thought["Thought 2: Tìm danh sách bác sĩ tại cơ sở yêu cầu"]
         Step2_Thought --> Step2_Action["Action 2: search_doctors"]
         Step2_Action --> Step2_Obs["Observation 2: Hồ sơ danh sách Bác sĩ"]
-        
+      
         Step2_Obs --> Step3_Thought["Thought 3: Đã đủ thông tin để tư vấn an toàn"]
     end
 
