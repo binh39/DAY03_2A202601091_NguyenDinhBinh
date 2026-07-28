@@ -32,10 +32,12 @@
     "expected_behavior": "Agent thực hiện quy trình ReAct: Bước 1 gọi tool phân loại chuyên khoa (Khoa Nhi), Bước 2 gọi tool tìm danh sách Bác sĩ Nhi tại Vinmec Central Park, cuối cùng tổng hợp tư vấn cho phụ huynh."
   },
   {
-    "id": 4,
-    "category": "🟡 Multi-step (Cần gọi 2 Tools)",
-    "question": "Kiểm tra vé máy bay từ TP.HCM đi Hà Nội ngày mai và dự báo thời tiết ở Hà Nội.",
-    "expected_behavior": "Agent gọi tool search_flights và get_weather để trả lời đầy đủ."
+    "id": "TC_VINMEC_03",
+    "category": "Multi-Step ReAct",
+    "description": "Bệnh nhân có triệu chứng liên quan nhiều chuyên khoa, cần phân tích đa bước và tìm bác sĩ",
+    "input": "Bé nhà mình 3 tuổi bị ho kéo dài kèm sốt nhẹ và biếng ăn. Cho mình hỏi nên khám khoa nào ở Vinmec Central Park và có bác sĩ Nhi nào tốt không?",
+    "expected_tools": ["search_specialties", "search_doctors"],
+    "expected_behavior": "Agent thực hiện quy trình ReAct: Bước 1 gọi tool phân loại chuyên khoa (Khoa Nhi), Bước 2 gọi tool tìm danh sách Bác sĩ Nhi tại Vinmec Central Park, cuối cùng tổng hợp tư vấn cho phụ huynh."
   },
   {
     "id": "TC_VINMEC_05",
